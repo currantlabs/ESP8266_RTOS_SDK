@@ -1026,6 +1026,8 @@ noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx,
 		SSL_library_init ();
 	} /* end if */
 
+	mbedtls_library_init();
+
 	/* call common implementation */
 	return __nopoll_conn_new_common (ctx, options, nopoll_true, 
 					 host_ip, host_port, host_name, 
