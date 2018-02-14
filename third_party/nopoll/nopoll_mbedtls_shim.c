@@ -128,7 +128,7 @@ static const char default_cas_certificate[] ICACHE_RODATA_ATTR STORE_ATTR = {
 };
 unsigned int default_cas_certificate_len = 1340;
 
-int mbedtls_library_init(void)
+int mbedtls_library_init(const char *host, const char *port)
 {
     int ret, len;
     mbedtls_net_context server_fd;
@@ -136,7 +136,7 @@ int mbedtls_library_init(void)
     unsigned char buf[256];
     const char *pers = "ssl_client1";
 
-	printf("mbedtls_library_init(): Hello, websocket!\n");
+	printf("mbedtls_library_init(): Connecting to host \"%s\", port \"\%s\"\n", host, port);
 
     mbedtls_entropy_context *entropy = (mbedtls_entropy_context *)zalloc(sizeof(mbedtls_entropy_context));
     mbedtls_ctr_drbg_context ctr_drbg;
