@@ -12,6 +12,8 @@
 
 #include "esp_common.h"
 
+#include "nopoll/nopoll.h"
+
 static const char default_cas_certificate[] ICACHE_RODATA_ATTR STORE_ATTR = {
   0x30, 0x82, 0x05, 0x38, 0x30, 0x82, 0x04, 0x20, 0xa0, 0x03, 0x02, 0x01,
   0x02, 0x02, 0x10, 0x51, 0x3f, 0xb9, 0x74, 0x38, 0x70, 0xb7, 0x34, 0x40,
@@ -128,19 +130,42 @@ static const char default_cas_certificate[] ICACHE_RODATA_ATTR STORE_ATTR = {
 };
 unsigned int default_cas_certificate_len = 1340;
 
-int mbedtls_library_init(const char *host, const char *port)
+static void my_debug( void *ctx, int level,
+                      const char *file, int line,
+                      const char *str )
+{
+    ((void) level);
+
+    mbedtls_fprintf( (FILE *) ctx, "%s:%04d: %s", file, line, str );
+    fflush(  (FILE *) ctx  );
+}
+
+uint8 * Ssl_obj_load(const uint8_t* data, int len)
+{
+	uint32 load_len = (len + 3)&(~3);
+	uint8* load_buffer = (uint8 *)zalloc(load_len);
+	if (load_buffer != NULL)
+		memcpy(load_buffer, data, load_len);
+	return load_buffer;
+}
+
+int mbedtls_library_init(mbedtls_ssl_context **nopoll_ssl, const char *SERVER_NAME, const char *SERVER_PORT)
 {
     int ret, len;
     mbedtls_net_context server_fd;
     uint32_t flags;
     unsigned char buf[256];
+	uint8* load_buffer = NULL;
     const char *pers = "ssl_client1";
 
-	printf("mbedtls_library_init(): Connecting to host \"%s\", port \"\%s\"\n", host, port);
+	printf("mbedtls_library_init(): Connecting to host \"%s\", port \"\%s\"\n", SERVER_NAME, SERVER_PORT);
 
     mbedtls_entropy_context *entropy = (mbedtls_entropy_context *)zalloc(sizeof(mbedtls_entropy_context));
     mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_ssl_context *ssl = (mbedtls_ssl_context *)zalloc(sizeof(mbedtls_ssl_context));
+
+    mbedtls_ssl_context *ssl = *nopoll_ssl;
+    ssl = (mbedtls_ssl_context *)zalloc(sizeof(mbedtls_ssl_context));
+
     mbedtls_ssl_config *conf = (mbedtls_ssl_config *)zalloc(sizeof(mbedtls_ssl_config));
 	
     mbedtls_x509_crt *cacert = (mbedtls_x509_crt *)zalloc(sizeof(mbedtls_x509_crt));
@@ -163,6 +188,119 @@ int mbedtls_library_init(const char *host, const char *port)
     }
 
     mbedtls_printf( " ok\n" );
+
+    /*
+     * 1.1. Load the trusted CA
+     */
+    mbedtls_printf( "  . Loading the CA root certificate ..." );
+    load_buffer = Ssl_obj_load(default_cas_certificate, default_cas_certificate_len);
+    ret = mbedtls_x509_crt_parse( cacert, (const unsigned char *) load_buffer, default_cas_certificate_len );
+	free(load_buffer);
+	load_buffer = NULL;
+    if( ret < 0 )
+    {
+        mbedtls_printf( " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n", -ret );
+        goto exit;
+    }
+
+    mbedtls_printf( " ok (%d skipped)\n", ret );
+
+    /*
+     * 2. Start the connection
+     */
+    mbedtls_printf( "  . Connecting to tcp/%s/%s...", SERVER_NAME, SERVER_PORT );
+    //fflush( stdout );
+
+    if( ( ret = mbedtls_net_connect( &server_fd, SERVER_NAME,
+                                         SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
+    {
+        mbedtls_printf( " failed\n  ! mbedtls_net_connect returned %d\n\n", ret );
+        goto exit;
+    }
+
+    mbedtls_printf( " ok\n" );
+
+    /*
+     * 3. Setup stuff
+     */
+    mbedtls_printf( "  . Setting up the SSL/TLS structure..." );
+    //fflush( stdout );
+
+    if( ( ret = mbedtls_ssl_config_defaults( conf,
+                    MBEDTLS_SSL_IS_CLIENT,
+                    MBEDTLS_SSL_TRANSPORT_STREAM,
+                    MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
+    {
+        mbedtls_printf( " failed\n  ! mbedtls_ssl_config_defaults returned %d\n\n", ret );
+        goto exit;
+    }
+
+    mbedtls_printf( " ok %d\n" , system_get_free_heap_size());
+
+    /* OPTIONAL is not optimal for security,
+     * but makes interop easier in this simplified example */
+    mbedtls_ssl_conf_authmode( conf, MBEDTLS_SSL_VERIFY_NONE );
+    mbedtls_ssl_conf_ca_chain( conf, cacert, NULL );
+	if( ( ret = mbedtls_ssl_conf_own_cert( conf, clicert, pkey ) ) != 0 ){
+         mbedtls_printf( " failed\n  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret );
+         goto exit;
+    }
+    mbedtls_ssl_conf_rng( conf, mbedtls_ctr_drbg_random, &ctr_drbg );
+    mbedtls_ssl_conf_dbg( conf, my_debug, stdout );
+
+    if( ( ret = mbedtls_ssl_setup( ssl, conf ) ) != 0 )
+    {
+        mbedtls_printf( " failed\n  ! mbedtls_ssl_setup returned %d\n\n", ret );
+        goto exit;
+    }
+
+    if( ( ret = mbedtls_ssl_set_hostname( ssl, "mbed TLS Server 1" ) ) != 0 )
+    {
+        mbedtls_printf( " failed\n  ! mbedtls_ssl_set_hostname returned %d\n\n", ret );
+        goto exit;
+    }
+
+    mbedtls_ssl_set_bio( ssl, &server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
+
+    /*
+     * 4. Handshake
+     */
+    mbedtls_printf( "  . Performing the SSL/TLS handshake..." );
+    //fflush( stdout );
+
+	static int handshakes = 0;
+    while( ( ret = mbedtls_ssl_handshake( ssl ) ) != 0 )
+    {
+        if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
+        {
+
+            mbedtls_printf( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n", -ret );
+            goto exit;
+        }
+    }
+
+    mbedtls_printf( " ok\n" );
+
+    /*
+     * 5. Verify the server certificate
+     */
+    mbedtls_printf( "  . Verifying peer X.509 certificate..." );
+
+    /* In real life, we probably want to bail out when ret != 0 */
+    if( ( flags = mbedtls_ssl_get_verify_result( ssl ) ) != 0 )
+    {
+        char vrfy_buf[512];
+
+        mbedtls_printf( " failed\n" );
+
+        mbedtls_x509_crt_verify_info( vrfy_buf, sizeof( vrfy_buf ), "  ! ", flags );
+
+        mbedtls_printf( "%s\n", vrfy_buf );
+    }
+    else
+        mbedtls_printf( " ok\n" );
+
+
 
 
 
