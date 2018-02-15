@@ -314,6 +314,7 @@ int nopoll_conn_log_ssl (noPollConn * conn)
 #if defined(SHOW_DEBUG_LOG)
         noPollCtx      * ctx = conn->ctx;
 #endif
+#ifdef NOWAY
 	char             log_buffer [512];
 	unsigned long    err;
 	int              error_position;
@@ -344,11 +345,13 @@ int nopoll_conn_log_ssl (noPollConn * conn)
 		    conn->id, conn->session, errno);
 	
 	
+#endif // NOWAY
 	return (0);
 }
 
 int __nopoll_conn_tls_handle_error (noPollConn * conn, int res, const char * label, nopoll_bool * needs_retry)
 {
+#ifdef NOWAY
 	int ssl_err;
 
 	(*needs_retry) = nopoll_false;
@@ -396,6 +399,7 @@ int __nopoll_conn_tls_handle_error (noPollConn * conn, int res, const char * lab
 		break;
 	}
 	nopoll_log (conn->ctx, NOPOLL_LEVEL_WARNING, "%s/SSL_get_error returned %d", label, res);
+#endif // NOWAY
 	return -1;
 	
 }
@@ -405,6 +409,7 @@ int __nopoll_conn_tls_handle_error (noPollConn * conn, int res, const char * lab
  */
 int nopoll_conn_tls_receive (noPollConn * conn, char * buffer, int buffer_size)
 {
+#ifdef NOWAY
 	int res;
 	nopoll_bool needs_retry;
 	int         tries = 0;
@@ -425,6 +430,9 @@ int nopoll_conn_tls_receive (noPollConn * conn, char * buffer, int buffer_size)
 	}
 	/* nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "  SSL: after procesing error %d bytes..", res); */
 	return res;
+#else
+	return 0;
+#endif // NOWAY
 }
 
 /** 
@@ -432,6 +440,7 @@ int nopoll_conn_tls_receive (noPollConn * conn, char * buffer, int buffer_size)
  */
 int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 {
+#ifdef NOWAY
 	int         res;
 	nopoll_bool needs_retry;
 	int         tries = 0;
@@ -453,11 +462,16 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 		tries++;
 	}
 	return res;
+#else
+	return 0;
+#endif // NOWAY
+	
 }
 
 
 SSL_CTX * __nopoll_conn_get_ssl_context (noPollCtx * ctx, noPollConn * conn, noPollConnOpts * opts, nopoll_bool is_client)
 {
+#ifdef NOWAY
 	/* call to user defined function if the context creator is defined */
 	if (ctx && ctx->context_creator) 
 		return ctx->context_creator (ctx, conn, opts, is_client, ctx->context_creator_data);
@@ -485,6 +499,9 @@ SSL_CTX * __nopoll_conn_get_ssl_context (noPollCtx * ctx, noPollConn * conn, noP
 
 	/* reached this point, report default TLSv1 method */
 	return (SSL_CTX *)SSL_CTX_new (is_client ? TLSv1_client_method () : TLSv1_server_method ()); 
+#else
+	return NULL;
+#endif // NOWAY	
 }
 
 noPollCtx * __nopoll_conn_ssl_ctx_debug = NULL;
@@ -520,6 +537,7 @@ int __nopoll_conn_ssl_verify_callback (int ok, X509_STORE_CTX * store) {
 
 nopoll_bool __nopoll_conn_set_ssl_client_options (noPollCtx * ctx, noPollConn * conn, noPollConnOpts * options)
 {
+#ifdef NOWAY
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Checking to establish SSL options (%p)", options);
 
 	if (options && options->ca_certificate) {
@@ -581,6 +599,9 @@ nopoll_bool __nopoll_conn_set_ssl_client_options (noPollCtx * ctx, noPollConn * 
 	} /* end if */
 
 	return nopoll_true;
+#else
+	return nopoll_false;
+#endif // NOWAY
 }
 
 
@@ -1020,20 +1041,27 @@ noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx,
 				  const char * protocols,
 				  const char * origin)
 {
+#ifdef NOWAY
 	/* init ssl ciphers and engines */
 	if (! __nopoll_tls_was_init) {
 		__nopoll_tls_was_init = nopoll_true;
 		SSL_library_init ();
 	} /* end if */
+#endif // NOWAY
 
 	mbedtls_ssl_context *ssl;
 
 	mbedtls_library_init(&ssl, host_ip, host_port);
 
+#ifdef NOWAY
 	/* call common implementation */
 	return __nopoll_conn_new_common (ctx, options, nopoll_true, 
 					 host_ip, host_port, host_name, 
 					 get_url, protocols, origin);
+#else
+	return NULL;
+#endif //NOWAY
+
 }
 
 /** 
@@ -1592,6 +1620,7 @@ noPollPtr     nopoll_conn_get_hook (noPollConn * conn)
  */
 void nopoll_conn_unref (noPollConn * conn)
 {
+#ifdef NOWAY
 	if (conn == NULL)
 		return;
 
@@ -1667,6 +1696,8 @@ void nopoll_conn_unref (noPollConn * conn)
 	nopoll_mutex_destroy (conn->ref_mutex);
 
 	nopoll_free (conn);	
+
+#endif // NOWAY
 
 	return;
 }
@@ -2044,6 +2075,7 @@ nopoll_bool nopoll_conn_check_mime_header_repeated (noPollConn   * conn,
 
 char * nopoll_conn_produce_accept_key (noPollCtx * ctx, const char * websocket_key)
 {
+#ifdef NOWAY
 	const char * static_guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";	
 	char       * accept_key;	
 	int          accept_key_size;
@@ -2084,6 +2116,10 @@ char * nopoll_conn_produce_accept_key (noPollCtx * ctx, const char * websocket_k
 	
 	return accept_key;
 	
+#else
+	return NULL;
+#endif //NOWAY
+
 }
 
 nopoll_bool nopoll_conn_complete_handshake_check_listener (noPollCtx * ctx, noPollConn * conn)
@@ -2499,6 +2535,7 @@ void nopoll_conn_mask_content (noPollCtx * ctx, char * payload, int payload_size
  */
 noPollMsg   * nopoll_conn_get_msg (noPollConn * conn)
 {
+#ifdef NOWAY
 	char        buffer[20];
 	int         bytes;
 	noPollMsg * msg;
@@ -2969,6 +3006,9 @@ read_payload:
 	}
 
 	return msg;
+#else
+	return NULL;
+#endif //NULL
 }
 
 /** 

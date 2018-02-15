@@ -520,8 +520,12 @@ nopoll_bool nopoll_base64_encode (const char  * content,
 				  char        * output, 
 				  int         * output_size)
 {
+#ifdef NOWAY
     base64_encode(output, *output_size, (int*)output_size, (char *)content,length);
     return nopoll_true;
+#else
+    return nopoll_false;
+#endif //NOWAY
 
 #if 0 
 	BIO     * b64;
