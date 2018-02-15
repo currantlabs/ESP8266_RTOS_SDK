@@ -469,7 +469,7 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 }
 
 
-SSL_CTX * __nopoll_conn_get_ssl_context (noPollCtx * ctx, noPollConn * conn, noPollConnOpts * opts, nopoll_bool is_client)
+ssl_context * __nopoll_conn_get_ssl_context (noPollCtx * ctx, noPollConn * conn, noPollConnOpts * opts, nopoll_bool is_client)
 {
 #ifdef NOWAY
 	/* call to user defined function if the context creator is defined */
@@ -506,6 +506,7 @@ SSL_CTX * __nopoll_conn_get_ssl_context (noPollCtx * ctx, noPollConn * conn, noP
 
 noPollCtx * __nopoll_conn_ssl_ctx_debug = NULL;
 
+#ifdef NOWAY
 int __nopoll_conn_ssl_verify_callback (int ok, X509_STORE_CTX * store) {
 	char   data[256];
 	X509 * cert;
@@ -534,6 +535,7 @@ int __nopoll_conn_ssl_verify_callback (int ok, X509_STORE_CTX * store) {
 	}
 	return ok; /* return same value */
 }
+#endif // NOWAY
 
 nopoll_bool __nopoll_conn_set_ssl_client_options (noPollCtx * ctx, noPollConn * conn, noPollConnOpts * options)
 {
@@ -623,7 +625,9 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	char           * content;
 	int              size;
 	int              ssl_error;
+#ifdef NOWAY
 	X509           * server_cert;
+#endif // NOWAY
 	int              iterator;
 	long             remaining_timeout;
 
@@ -721,6 +725,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		return NULL;
 	} /* end if */
 
+#ifdef NOWAY
 	/* check for TLS support */
 	if (enable_tls) {
 		/* found TLS connection request, enable it */
@@ -844,6 +849,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "TLS I/O handlers configured");
 		conn->tls_on = nopoll_true;
 	} /* end if */
+#endif // NOWAY
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Sending websocket client init: %s", content);
 	size = strlen (content);
@@ -878,6 +884,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	/* return connection created */
 	return conn;
 }
+
 
 
 /** 
@@ -931,6 +938,7 @@ noPollConn * nopoll_conn_new (noPollCtx  * ctx,
 					 get_url, protocols, origin);
 }
 
+#ifdef NOWAY
 /** 
  * @brief Creates a new Websocket connection to the provided
  * destination, physically located at host_ip and host_port and
@@ -986,6 +994,7 @@ noPollConn * nopoll_conn_new_opts (noPollCtx       * ctx,
 					 host_ip, host_port, host_name, 
 					 get_url, protocols, origin);
 }
+#endif // NOWAY
 
 nopoll_bool __nopoll_tls_was_init = nopoll_false;
 
@@ -1049,7 +1058,10 @@ noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx,
 	} /* end if */
 #endif // NOWAY
 
-	mbedtls_ssl_context *ssl;
+//	mbedtls_ssl_context *ssl;
+//	mbedtls_ssl_context *ssl = ctx->ssl;
+	noPollConn *connection = ctx->conn_list[0];
+	mbedtls_ssl_context *ssl = connection->ssl;
 
 	mbedtls_library_init(&ssl, host_ip, host_port);
 
@@ -3918,6 +3930,7 @@ noPollConn * nopoll_conn_accept_socket (noPollCtx * ctx, noPollConn * listener, 
 	return conn;
 }
 
+#ifdef NOWAY
 /**
  * @internal Function to support accept listener operations.
  */
@@ -4131,6 +4144,8 @@ nopoll_bool __nopoll_conn_accept_complete_common (noPollCtx * ctx, noPollConnOpt
 
 	return nopoll_true;
 }
+#endif // NOWAY
+
 
 /** 
  * @brief Allows to complete accept operation by setting up all I/O
