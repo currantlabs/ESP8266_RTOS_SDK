@@ -409,14 +409,13 @@ int __nopoll_conn_tls_handle_error (noPollConn * conn, int res, const char * lab
  */
 int nopoll_conn_tls_receive (noPollConn * conn, char * buffer, int buffer_size)
 {
-#ifdef NOWAY
 	int res;
 	nopoll_bool needs_retry;
 	int         tries = 0;
 
 	/* call to read content */
 	while (tries < 50) {
-	        res = SSL_read (conn->ssl, buffer, buffer_size);
+	        res = mbedtls_ssl_read (conn->ssl, buffer, buffer_size);
 		/* nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "SSL: received %d bytes..", res); */
 
 		/* call to handle error */
@@ -430,9 +429,6 @@ int nopoll_conn_tls_receive (noPollConn * conn, char * buffer, int buffer_size)
 	}
 	/* nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "  SSL: after procesing error %d bytes..", res); */
 	return res;
-#else
-	return 0;
-#endif // NOWAY
 }
 
 /** 
@@ -440,14 +436,13 @@ int nopoll_conn_tls_receive (noPollConn * conn, char * buffer, int buffer_size)
  */
 int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 {
-#ifdef NOWAY
 	int         res;
 	nopoll_bool needs_retry;
 	int         tries = 0;
 
 	/* call to read content */
 	while (tries < 50) {
-	        res = SSL_write (conn->ssl, buffer, buffer_size);
+		res = mbedtls_ssl_write (conn->ssl, buffer, buffer_size);
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "SSL: sent %d bytes (requested: %d)..", res, buffer_size); 
 
 		/* call to handle error */
@@ -462,9 +457,6 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 		tries++;
 	}
 	return res;
-#else
-	return 0;
-#endif // NOWAY
 	
 }
 
@@ -725,9 +717,9 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		return NULL;
 	} /* end if */
 
-#ifdef NOWAY
 	/* check for TLS support */
 	if (enable_tls) {
+#ifdef NOWAY
 		/* found TLS connection request, enable it */
 		conn->ssl_ctx  = __nopoll_conn_get_ssl_context (ctx, conn, options, nopoll_true);
 
@@ -842,6 +834,12 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 			} /* end if */
 		} /* end if */
 
+#else
+
+		mbedtls_library_init(&(conn->ssl), host_ip, host_port);
+
+#endif // NOWAY
+
 		/* configure default handlers */
 		conn->receive = nopoll_conn_tls_receive;
 		conn->sends    = nopoll_conn_tls_send;
@@ -849,7 +847,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "TLS I/O handlers configured");
 		conn->tls_on = nopoll_true;
 	} /* end if */
-#endif // NOWAY
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Sending websocket client init: %s", content);
 	size = strlen (content);
@@ -1058,21 +1055,11 @@ noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx,
 	} /* end if */
 #endif // NOWAY
 
-//	mbedtls_ssl_context *ssl;
-//	mbedtls_ssl_context *ssl = ctx->ssl;
-	noPollConn *connection = ctx->conn_list[0];
-	mbedtls_ssl_context *ssl = connection->ssl;
 
-	mbedtls_library_init(&ssl, host_ip, host_port);
-
-#ifdef NOWAY
 	/* call common implementation */
 	return __nopoll_conn_new_common (ctx, options, nopoll_true, 
 					 host_ip, host_port, host_name, 
 					 get_url, protocols, origin);
-#else
-	return NULL;
-#endif //NOWAY
 
 }
 
