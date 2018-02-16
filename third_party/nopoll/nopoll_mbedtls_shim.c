@@ -163,8 +163,9 @@ int mbedtls_library_init(mbedtls_ssl_context **nopoll_ssl, const char *SERVER_NA
     mbedtls_entropy_context *entropy = (mbedtls_entropy_context *)zalloc(sizeof(mbedtls_entropy_context));
     mbedtls_ctr_drbg_context ctr_drbg;
 
-    mbedtls_ssl_context *ssl = *nopoll_ssl;
-    ssl = (mbedtls_ssl_context *)zalloc(sizeof(mbedtls_ssl_context));
+    mbedtls_ssl_context *ssl = (mbedtls_ssl_context *)zalloc(sizeof(mbedtls_ssl_context));
+	*nopoll_ssl = ssl;
+	printf("\n\n(vjc) mbedtls_ssl_context ssl = 0x%p (*nopoll_ssl = 0x%p)\n\n", ssl, *nopoll_ssl);
 
     mbedtls_ssl_config *conf = (mbedtls_ssl_config *)zalloc(sizeof(mbedtls_ssl_config));
 	
