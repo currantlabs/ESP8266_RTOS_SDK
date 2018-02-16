@@ -836,7 +836,12 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 #else
 
-		mbedtls_library_init(&(conn->ssl), host_ip, host_port);
+		conn->session = mbedtls_library_init(&(conn->ssl), host_ip, host_port);
+
+		printf("(vjc) __nopoll_conn_new_common(): conn = 0x%p, setting conn->session to %d\n", conn, conn->session);
+
+		printf("(vjc) __nopoll_conn_new_common(): Returning conn = 0x%p, with conn->session of %d.\n", conn, conn->session);
+		return conn;
 
 #endif // NOWAY
 
@@ -879,6 +884,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	__nopoll_conn_opts_release_if_needed (options);
 
 	/* return connection created */
+	printf("(vjc) __nopoll_conn_new_common(): Returning conn = 0x%p, with conn->session of %d.\n", conn, conn->session);
 	return conn;
 }
 
@@ -1134,7 +1140,19 @@ int            nopoll_conn_ref_count (noPollConn * conn)
 nopoll_bool    nopoll_conn_is_ok (noPollConn * conn)
 {
 	if (conn == NULL)
+	{
+		printf("(vjc): nopoll_conn_is_ok(): bailing because conn == NULL\n");
 		return nopoll_false;
+	}
+
+	if (conn->session == NOPOLL_INVALID_SOCKET)
+	{
+		printf("(vjc): nopoll_conn_is_ok(): bailing because conn->session == NOPOLL_INVALID_SOCKET\n");
+	}
+	else
+	{
+		printf("(vjc): nopoll_conn_is_ok(): returning TRUE\n");
+	}
 
 	/* return current socket status */
 	return conn->session != NOPOLL_INVALID_SOCKET;
@@ -1152,20 +1170,40 @@ nopoll_bool    nopoll_conn_is_ok (noPollConn * conn)
  */
 nopoll_bool    nopoll_conn_is_ready (noPollConn * conn)
 {
+	printf("(vjc): nopoll_conn_is_ready(): => Checking...\n");
+
 	if (conn == NULL)
+	{
+		printf("(vjc): nopoll_conn_is_ready(): conn == NULL, returning false\n");
 		return nopoll_false;
+	}
+
 	if (conn->session == NOPOLL_INVALID_SOCKET)
+	{
+		printf("(vjc): nopoll_conn_is_ready(): conn->session == NOPOLL_INVALID_SOCKET, returning false\n");
 		return nopoll_false;
+	}
+
 	if (! conn->handshake_ok) {
+		printf("(vjc): nopoll_conn_is_ready(): acquiring handshake mutex\n");
 		/* acquire here handshake mutex */
 		nopoll_mutex_lock (conn->ref_mutex);
 
+		printf("(vjc): nopoll_conn_is_ready(): completing the handshake\n");
 		/* complete handshake */
 		nopoll_conn_complete_handshake (conn);
 
+		printf("(vjc): nopoll_conn_is_ready(): releasing the handshake mutex\n");
 		/* release here handshake mutex */
 		nopoll_mutex_unlock (conn->ref_mutex);
 	}
+	else
+	{
+		printf("(vjc): nopoll_conn_is_ready(): conn->handshake_ok was true, just returning\n");
+	}
+
+	printf("(vjc): nopoll_conn_is_ready(): <= Returning...\n");
+
 	return conn->handshake_ok;
 }
 
