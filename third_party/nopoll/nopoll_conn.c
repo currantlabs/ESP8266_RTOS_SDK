@@ -623,6 +623,8 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	int              iterator;
 	long             remaining_timeout;
 
+	printf("(vjc) __nopoll_conn_new_common(): = Top\n");
+
 	if (! ctx || ! host_ip) {
 		/* release connection options */
 		__nopoll_conn_opts_release_if_needed (options);
@@ -632,15 +634,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	/* set default connection port */
 	if (host_port == NULL)
 		host_port = "80";
-
-	/* create socket connection in a non block manner */
-	session = nopoll_conn_sock_connect (ctx, host_ip, host_port);
-	if (session == NOPOLL_INVALID_SOCKET) {
-		/* release connection options */
-		__nopoll_conn_opts_release_if_needed (options);
-		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "Failed to connect to remote host %s:%s", host_ip, host_port);
-		return NULL;
-	} /* end if */
 
 	/* create the connection */
 	conn = nopoll_new (noPollConn, 1);
@@ -652,8 +645,23 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 	conn->refs = 1;
 
+	/* create socket connection in a non block manner */
+	session = mbedtls_library_init(&(conn->ssl), host_ip, host_port);
+
+	printf("(vjc) __nopoll_conn_new_common(): returned from mbedtls_library_init with session = %d\n", session);
+
+	if (session == NOPOLL_INVALID_SOCKET) {
+		/* release connection options */
+		__nopoll_conn_opts_release_if_needed (options);
+		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "Failed to connect to remote host %s:%s", host_ip, host_port);
+		nopoll_free (conn);
+		return NULL;
+	} /* end if */
+
 	/* create mutex */
 	conn->ref_mutex = nopoll_mutex_create ();
+
+	printf("(vjc) __nopoll_conn_new_common(): created conn->ref_mutex\n", session);
 
 	/* register connection into context */
 	if (! nopoll_ctx_register_conn (ctx, conn)) {
@@ -664,6 +672,9 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 		return NULL;
 	}
+
+	printf("(vjc) __nopoll_conn_new_common(): Created noPoll conn-id=%d (ptr: %p, context: %p, socket: %d)\n",
+		   conn->id, conn, ctx, session);
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Created noPoll conn-id=%d (ptr: %p, context: %p, socket: %d)",
 		    conn->id, conn, ctx, session);
@@ -702,6 +713,9 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	/* protocols */
 	if (protocols != NULL)
 		conn->protocols = nopoll_strdup (protocols);
+
+	printf("(vjc) __nopoll_conn_new_common(): get_url = [%s], conn->host_name = [%s], conn->host = [%s], conn->port = [%s]\n",
+		   conn->get_url, conn->host_name, conn->host, conn->port);
 
 
 	/* get client init payload */
@@ -852,6 +866,10 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "TLS I/O handlers configured");
 		conn->tls_on = nopoll_true;
 	} /* end if */
+	else
+	{
+		printf("(vjc) __nopoll_conn_new_common(): The non-tls branch of code.\n");
+	}
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Sending websocket client init: %s", content);
 	size = strlen (content);
@@ -935,10 +953,26 @@ noPollConn * nopoll_conn_new (noPollCtx  * ctx,
 			      const char * protocols,
 			      const char * origin)
 {
+	noPollConn *connection = NULL;
+
 	/* call common implementation */
-	return __nopoll_conn_new_common (ctx, NULL, nopoll_false, 
+	printf("(vjc) nopoll_conn_new(): => Top \n");
+	connection =  __nopoll_conn_new_common (ctx, NULL, nopoll_false, 
 					 host_ip, host_port, host_name, 
 					 get_url, protocols, origin);
+
+	if (connection == NULL)
+	{
+		printf("(vjc) nopoll_conn_new(): __nopoll_conn_new_common() returned us a NULL connection \n");
+	}
+	else
+	{
+		printf("(vjc) nopoll_conn_new(): __nopoll_conn_new_common() gave us a non-NULL connection equal to 0x%p \n", connection);
+	}
+
+	printf("(vjc) nopoll_conn_new(): <= \n");
+	return connection;
+
 }
 
 #ifdef NOWAY
