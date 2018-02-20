@@ -648,7 +648,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	/* create socket connection in a non block manner */
 	session = mbedtls_library_init(&(conn->ssl), host_ip, host_port);
 
-	printf("(vjc) __nopoll_conn_new_common(): returned from mbedtls_library_init with session = %d\n", session);
+	printf("(vjc) __nopoll_conn_new_common(): returned from mbedtls_library_init with session = %d, and conn->ssl = 0x%p\n", session, conn->ssl);
 
 	if (session == NOPOLL_INVALID_SOCKET) {
 		/* release connection options */
@@ -733,6 +733,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 	/* check for TLS support */
 	if (enable_tls) {
+		printf("(vjc) __nopoll_conn_new_common(): The TLS branch of code!\n");
 #ifdef NOWAY
 		/* found TLS connection request, enable it */
 		conn->ssl_ctx  = __nopoll_conn_get_ssl_context (ctx, conn, options, nopoll_true);
@@ -873,6 +874,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Sending websocket client init: %s", content);
 	size = strlen (content);
+	printf("(vjc) __nopoll_conn_new_common(): Sending websocket client init: [%s]", content);
 
 	/* call to send content */
 	remaining_timeout = ctx->conn_connect_std_timeout;
@@ -893,6 +895,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		break;
 	}
 
+	printf("(vjc) __nopoll_conn_new_common(): Web socket initial client handshake sent\n");
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Web socket initial client handshake sent");
 
 	/* release content */
@@ -1778,7 +1781,11 @@ void nopoll_conn_unref (noPollConn * conn)
  */
 int nopoll_conn_default_receive (noPollConn * conn, char * buffer, int buffer_size)
 {
-	return recv (conn->session, buffer, buffer_size, 0);
+	int retval;
+	printf("(vjc) => nopoll_conn_default_receive\n");
+	retval = mbedtls_ssl_read (conn->ssl, buffer, buffer_size);
+	printf("(vjc) <= nopoll_conn_default_receive retval is %d\n", retval);
+	return retval;
 }
 
 /** 
@@ -1786,7 +1793,11 @@ int nopoll_conn_default_receive (noPollConn * conn, char * buffer, int buffer_si
  */
 int nopoll_conn_default_send (noPollConn * conn, char * buffer, int buffer_size)
 {
-	return send (conn->session, buffer, buffer_size, 0);
+	int retval;
+	printf("(vjc) => nopoll_conn_default_send (Sending %d bytes)\n", buffer_size);
+	retval =  mbedtls_ssl_write (conn->ssl, buffer, buffer_size);
+	printf("(vjc) <= nopoll_conn_default_send retval is %d\n", retval);
+	return retval;
 }
 
 /** 
