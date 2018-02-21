@@ -312,20 +312,6 @@ int mbedtls_library_init(mbedtls_ssl_context *ssl, mbedtls_net_context *server_f
 		   ssl->major_ver, ssl->minor_ver, ssl->f_send, ssl->f_recv);
 
 
-	return server_fd->fd;
-
-
-
-
-
-
-	
-
-
-
-
-
-
 exit:
 
 #ifdef MBEDTLS_ERROR_C
@@ -337,21 +323,23 @@ exit:
     }
 #endif
 
+#ifdef FREESTUFFUP
 //    mbedtls_net_free( &server_fd );
 
     mbedtls_x509_crt_free( cacert );
 	mbedtls_x509_crt_free( clicert );
 	mbedtls_pk_free( pkey );
-    mbedtls_ssl_free( ssl );
+//    mbedtls_ssl_free( ssl );
     mbedtls_ssl_config_free( conf );
 //    mbedtls_ctr_drbg_free( &ctr_drbg );
     mbedtls_entropy_free( entropy );
-	free(ssl);
+//	free(ssl);
 	free(cacert);
 	free(clicert);
 	free(pkey);
 	free(entropy);
 	free(conf);
+#endif // FREESTUFFUP
 
     return( ret );
 }
