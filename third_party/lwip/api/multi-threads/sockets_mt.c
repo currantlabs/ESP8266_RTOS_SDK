@@ -729,7 +729,6 @@ int lwip_read_mt(int s, void *mem, size_t len)
 
 int lwip_write_mt(int s, const void *data, size_t size)
 {
-	printf("(vjc) lwip_write_mt(): => Top (s = %d, size = %d\n", s, size);
     return lwip_send_mt(s, data, size, 0);
 }
 
