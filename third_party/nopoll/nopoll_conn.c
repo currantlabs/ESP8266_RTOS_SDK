@@ -191,8 +191,6 @@ nopoll_bool                 nopoll_conn_set_sock_tcp_nodelay   (NOPOLL_SOCKET so
 	return nopoll_true;
 } /* end */
 
-#define REPLACE_PLAIN_SOCKET_WITH_MBEDTLS_SOCKET
-#ifdef REPLACE_PLAIN_SOCKET_WITH_MBEDTLS_SOCKET
 /**
  * Call mbedtls_library_init() (defined in nopoll_mbedtls_shim.c) and use
  * the socket it returns
@@ -216,74 +214,6 @@ NOPOLL_SOCKET nopoll_conn_sock_connect (noPollCtx   * ctx,
 
 	return session;
 }
-
-#else	// !REPLACE_PLAIN_SOCKET_WITH_MBEDTLS_SOCKET
-
-/** 
- * @internal Allows to create a plain socket connection against the
- * host and port provided.
- *
- * @param ctx The context where the connection happens.
- *
- * @param host The host server to connect to.
- *
- * @param port The port server to connect to.
- *
- * @return A connected socket or -1 if it fails. 
- */
-NOPOLL_SOCKET nopoll_conn_sock_connect (noPollCtx   * ctx,
-					const char  * host,
-					const char  * port)
-{
-	struct hostent     * hostent;
-	struct sockaddr_in   saddr;
-	NOPOLL_SOCKET        session;
-
-	/* resolve hosting name */
-	hostent = gethostbyname (host);
-	if (hostent == NULL) {
-		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "unable to resolve host name %s", host);
-		return -1;
-	} /* end if */
-
-	/* create the socket and check if it */
-	session      = socket (AF_INET, SOCK_STREAM, 0);
-	if (session == NOPOLL_INVALID_SOCKET) {
-		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "unable to create socket");
-		return -1;
-	} /* end if */
-
-	/* disable nagle */
-	nopoll_conn_set_sock_tcp_nodelay (session, nopoll_true);
-
-	/* prepare socket configuration to operate using TCP/IP
-	 * socket */
-        memset(&saddr, 0, sizeof(saddr));
-	saddr.sin_addr.s_addr = ((struct in_addr *)(hostent->h_addr))->s_addr;
-        saddr.sin_family    = AF_INET;
-	    saddr.sin_port      = htons((uint16_t) strtol (port, NULL, 10));
-
-	/* set non blocking status */
-//	nopoll_conn_set_sock_block (session, nopoll_false);
-	
-	/* do a tcp connect */
-        if (connect (session, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
-		if(errno != NOPOLL_EINPROGRESS && errno != NOPOLL_EWOULDBLOCK && errno != NOPOLL_ENOTCONN) { 
-		        shutdown (session, SHUT_RDWR);
-                        nopoll_close_socket (session);
-
-			nopoll_log (ctx, NOPOLL_LEVEL_WARNING, "unable to connect to remote host %s:%s errno=%d",
-				    host, port, errno);
-			return -1;
-		} /* end if */
-	} /* end if */
-
-	/* return socket created */
-	return session;
-}
-
-#endif // REPLACE_PLAIN_SOCKET_WITH_MBEDTLS_SOCKET
-
 
 /** 
  * @internal Function that builds the client init greetings that will
