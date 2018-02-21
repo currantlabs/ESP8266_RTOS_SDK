@@ -39,7 +39,7 @@
 #ifndef __NOPOLL_PRIVATE_H__
 #define __NOPOLL_PRIVATE_H__
 
-#include "mbedtls/compat-1.3.h"
+#include "ssl/ssl_compat-1.0.h"
 #include <nopoll_handlers.h>
 
 typedef struct _noPollCertificate {
@@ -268,7 +268,8 @@ struct _noPollConn {
 	nopoll_bool   pending_ssl_accept;
 
 	/* SSL support */
-  	mbedtls_ssl_context     * ssl;
+	SSL_CTX        * ssl_ctx;
+	SSL            * ssl;
 
 	/* certificates */
 	char           * certificate;
