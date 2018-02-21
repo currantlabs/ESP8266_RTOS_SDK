@@ -191,6 +191,35 @@ nopoll_bool                 nopoll_conn_set_sock_tcp_nodelay   (NOPOLL_SOCKET so
 	return nopoll_true;
 } /* end */
 
+#define REPLACE_PLAIN_SOCKET_WITH_MBEDTLS_SOCKET
+#ifdef REPLACE_PLAIN_SOCKET_WITH_MBEDTLS_SOCKET
+/**
+ * Call mbedtls_library_init() (defined in nopoll_mbedtls_shim.c) and use
+ * the socket it returns
+ *
+ * @param ctx The context where the connection happens.
+ *
+ * @param host The host server to connect to.
+ *
+ * @param port The port server to connect to.
+ *
+ * @return A connected socket or -1 if it fails. 
+ */
+NOPOLL_SOCKET nopoll_conn_sock_connect (noPollCtx   * ctx,
+					const char  * host,
+					const char  * port)
+{
+	NOPOLL_SOCKET session;
+	mbedtls_ssl_context	*mbedtlsp[] = {&mbedtlscookie};
+
+	/* create the socket and check if it */
+	session = mbedtls_library_init(&mbedtlsp[0], host, port);
+
+	return session;
+}
+
+#else	// !REPLACE_PLAIN_SOCKET_WITH_MBEDTLS_SOCKET
+
 /** 
  * @internal Allows to create a plain socket connection against the
  * host and port provided.
@@ -254,7 +283,7 @@ NOPOLL_SOCKET nopoll_conn_sock_connect (noPollCtx   * ctx,
 	return session;
 }
 
-
+#endif // REPLACE_PLAIN_SOCKET_WITH_MBEDTLS_SOCKET
 
 
 /** 
