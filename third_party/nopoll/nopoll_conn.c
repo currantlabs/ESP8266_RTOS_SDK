@@ -49,6 +49,7 @@
 #include <nopoll_conn.h>
 #include <nopoll_private.h>
 
+static mbedtls_ssl_context mbedtlscookie;
 
 
 /** 
@@ -415,7 +416,7 @@ int nopoll_conn_tls_receive (noPollConn * conn, char * buffer, int buffer_size)
 
 	/* call to read content */
 	while (tries < 50) {
-	        res = mbedtls_ssl_read (conn->ssl, buffer, buffer_size);
+	        res = mbedtls_ssl_read (&mbedtlscookie, buffer, buffer_size);
 		/* nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "SSL: received %d bytes..", res); */
 
 		/* call to handle error */
@@ -442,7 +443,7 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 
 	/* call to read content */
 	while (tries < 50) {
-		res = mbedtls_ssl_write (conn->ssl, buffer, buffer_size);
+		res = mbedtls_ssl_write (&mbedtlscookie, buffer, buffer_size);
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "SSL: sent %d bytes (requested: %d)..", res, buffer_size); 
 
 		/* call to handle error */
@@ -646,7 +647,8 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	conn->refs = 1;
 
 	/* create socket connection in a non block manner */
-	session = mbedtls_library_init(&(conn->ssl), host_ip, host_port);
+	mbedtls_ssl_context *mbedtlscookiepp[] = {&mbedtlscookie};
+	session = mbedtls_library_init(&mbedtlscookiepp[0], host_ip, host_port);
 
 	printf("(vjc) __nopoll_conn_new_common(): returned from mbedtls_library_init with session = %d, and conn->ssl = 0x%p\n", session, conn->ssl);
 
