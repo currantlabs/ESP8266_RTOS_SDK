@@ -440,7 +440,7 @@ int nopoll_conn_tls_receive (noPollConn * conn, char * buffer, int buffer_size)
 
 	/* call to read content */
 	while (tries < 50) {
-	        res = mbedtls_ssl_read (&mbedtlscookie, buffer, buffer_size);
+	        res = SSL_read (conn->ssl, buffer, buffer_size);
 		/* nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "SSL: received %d bytes..", res); */
 
 		/* call to handle error */
@@ -467,7 +467,7 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 
 	/* call to read content */
 	while (tries < 50) {
-		res = mbedtls_ssl_write (&mbedtlscookie, buffer, buffer_size);
+		res = SSL_write (conn->ssl, buffer, buffer_size);
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "SSL: sent %d bytes (requested: %d)..", res, buffer_size); 
 
 		/* call to handle error */
