@@ -315,7 +315,6 @@ int nopoll_conn_log_ssl (noPollConn * conn)
 #if defined(SHOW_DEBUG_LOG)
         noPollCtx      * ctx = conn->ctx;
 #endif
-#ifdef NOWAY
 	char             log_buffer [512];
 	unsigned long    err;
 	int              error_position;
@@ -346,13 +345,11 @@ int nopoll_conn_log_ssl (noPollConn * conn)
 		    conn->id, conn->session, errno);
 	
 	
-#endif // NOWAY
 	return (0);
 }
 
 int __nopoll_conn_tls_handle_error (noPollConn * conn, int res, const char * label, nopoll_bool * needs_retry)
 {
-#ifdef NOWAY
 	int ssl_err;
 
 	(*needs_retry) = nopoll_false;
@@ -400,7 +397,6 @@ int __nopoll_conn_tls_handle_error (noPollConn * conn, int res, const char * lab
 		break;
 	}
 	nopoll_log (conn->ctx, NOPOLL_LEVEL_WARNING, "%s/SSL_get_error returned %d", label, res);
-#endif // NOWAY
 	return -1;
 	
 }
@@ -458,13 +454,11 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 		tries++;
 	}
 	return res;
-	
 }
 
 
-ssl_context * __nopoll_conn_get_ssl_context (noPollCtx * ctx, noPollConn * conn, noPollConnOpts * opts, nopoll_bool is_client)
+SSL_CTX * __nopoll_conn_get_ssl_context (noPollCtx * ctx, noPollConn * conn, noPollConnOpts * opts, nopoll_bool is_client)
 {
-#ifdef NOWAY
 	/* call to user defined function if the context creator is defined */
 	if (ctx && ctx->context_creator) 
 		return ctx->context_creator (ctx, conn, opts, is_client, ctx->context_creator_data);
@@ -492,14 +486,10 @@ ssl_context * __nopoll_conn_get_ssl_context (noPollCtx * ctx, noPollConn * conn,
 
 	/* reached this point, report default TLSv1 method */
 	return (SSL_CTX *)SSL_CTX_new (is_client ? TLSv1_client_method () : TLSv1_server_method ()); 
-#else
-	return NULL;
-#endif // NOWAY	
 }
 
 noPollCtx * __nopoll_conn_ssl_ctx_debug = NULL;
 
-#ifdef NOWAY
 int __nopoll_conn_ssl_verify_callback (int ok, X509_STORE_CTX * store) {
 	char   data[256];
 	X509 * cert;
@@ -528,11 +518,9 @@ int __nopoll_conn_ssl_verify_callback (int ok, X509_STORE_CTX * store) {
 	}
 	return ok; /* return same value */
 }
-#endif // NOWAY
 
 nopoll_bool __nopoll_conn_set_ssl_client_options (noPollCtx * ctx, noPollConn * conn, noPollConnOpts * options)
 {
-#ifdef NOWAY
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Checking to establish SSL options (%p)", options);
 
 	if (options && options->ca_certificate) {
@@ -594,9 +582,6 @@ nopoll_bool __nopoll_conn_set_ssl_client_options (noPollCtx * ctx, noPollConn * 
 	} /* end if */
 
 	return nopoll_true;
-#else
-	return nopoll_false;
-#endif // NOWAY
 }
 
 
@@ -618,9 +603,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	char           * content;
 	int              size;
 	int              ssl_error;
-#ifdef NOWAY
 	X509           * server_cert;
-#endif // NOWAY
 	int              iterator;
 	long             remaining_timeout;
 
@@ -636,6 +619,15 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	if (host_port == NULL)
 		host_port = "80";
 
+	/* create socket connection in a non block manner */
+	session = nopoll_conn_sock_connect (ctx, host_ip, host_port);
+	if (session == NOPOLL_INVALID_SOCKET) {
+		/* release connection options */
+		__nopoll_conn_opts_release_if_needed (options);
+		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "Failed to connect to remote host %s:%s", host_ip, host_port);
+		return NULL;
+	} /* end if */
+
 	/* create the connection */
 	conn = nopoll_new (noPollConn, 1);
 	if (conn == NULL) {
@@ -646,24 +638,8 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 	conn->refs = 1;
 
-	/* create socket connection in a non block manner */
-	mbedtls_ssl_context *mbedtlscookiepp[] = {&mbedtlscookie};
-	session = mbedtls_library_init(&mbedtlscookiepp[0], host_ip, host_port);
-
-	printf("(vjc) __nopoll_conn_new_common(): returned from mbedtls_library_init with session = %d, and conn->ssl = 0x%p\n", session, conn->ssl);
-
-	if (session == NOPOLL_INVALID_SOCKET) {
-		/* release connection options */
-		__nopoll_conn_opts_release_if_needed (options);
-		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "Failed to connect to remote host %s:%s", host_ip, host_port);
-		nopoll_free (conn);
-		return NULL;
-	} /* end if */
-
 	/* create mutex */
 	conn->ref_mutex = nopoll_mutex_create ();
-
-	printf("(vjc) __nopoll_conn_new_common(): created conn->ref_mutex\n", session);
 
 	/* register connection into context */
 	if (! nopoll_ctx_register_conn (ctx, conn)) {
@@ -674,9 +650,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 		return NULL;
 	}
-
-	printf("(vjc) __nopoll_conn_new_common(): Created noPoll conn-id=%d (ptr: %p, context: %p, socket: %d)\n",
-		   conn->id, conn, ctx, session);
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Created noPoll conn-id=%d (ptr: %p, context: %p, socket: %d)",
 		    conn->id, conn, ctx, session);
@@ -716,9 +689,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	if (protocols != NULL)
 		conn->protocols = nopoll_strdup (protocols);
 
-	printf("(vjc) __nopoll_conn_new_common(): get_url = [%s], conn->host_name = [%s], conn->host = [%s], conn->port = [%s]\n",
-		   conn->get_url, conn->host_name, conn->host, conn->port);
-
 
 	/* get client init payload */
 	content = __nopoll_conn_get_client_init (conn, options);
@@ -735,8 +705,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 	/* check for TLS support */
 	if (enable_tls) {
-		printf("(vjc) __nopoll_conn_new_common(): The TLS branch of code!\n");
-#ifdef NOWAY
 		/* found TLS connection request, enable it */
 		conn->ssl_ctx  = __nopoll_conn_get_ssl_context (ctx, conn, options, nopoll_true);
 
@@ -851,17 +819,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 			} /* end if */
 		} /* end if */
 
-#else
-
-		conn->session = mbedtls_library_init(&(conn->ssl), host_ip, host_port);
-
-		printf("(vjc) __nopoll_conn_new_common(): conn = 0x%p, setting conn->session to %d\n", conn, conn->session);
-
-		printf("(vjc) __nopoll_conn_new_common(): Returning conn = 0x%p, with conn->session of %d.\n", conn, conn->session);
-		return conn;
-
-#endif // NOWAY
-
 		/* configure default handlers */
 		conn->receive = nopoll_conn_tls_receive;
 		conn->sends    = nopoll_conn_tls_send;
@@ -869,10 +826,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "TLS I/O handlers configured");
 		conn->tls_on = nopoll_true;
 	} /* end if */
-	else
-	{
-		printf("(vjc) __nopoll_conn_new_common(): The non-tls branch of code.\n");
-	}
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Sending websocket client init: %s", content);
 	size = strlen (content);
@@ -910,7 +863,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	printf("(vjc) __nopoll_conn_new_common(): Returning conn = 0x%p, with conn->session of %d.\n", conn, conn->session);
 	return conn;
 }
-
 
 
 /** 
@@ -958,29 +910,12 @@ noPollConn * nopoll_conn_new (noPollCtx  * ctx,
 			      const char * protocols,
 			      const char * origin)
 {
-	noPollConn *connection = NULL;
-
 	/* call common implementation */
-	printf("(vjc) nopoll_conn_new(): => Top \n");
-	connection =  __nopoll_conn_new_common (ctx, NULL, nopoll_false, 
+	return __nopoll_conn_new_common (ctx, NULL, nopoll_false, 
 					 host_ip, host_port, host_name, 
 					 get_url, protocols, origin);
-
-	if (connection == NULL)
-	{
-		printf("(vjc) nopoll_conn_new(): __nopoll_conn_new_common() returned us a NULL connection \n");
-	}
-	else
-	{
-		printf("(vjc) nopoll_conn_new(): __nopoll_conn_new_common() gave us a non-NULL connection equal to 0x%p \n", connection);
-	}
-
-	printf("(vjc) nopoll_conn_new(): <= \n");
-	return connection;
-
 }
 
-#ifdef NOWAY
 /** 
  * @brief Creates a new Websocket connection to the provided
  * destination, physically located at host_ip and host_port and
@@ -1036,7 +971,6 @@ noPollConn * nopoll_conn_new_opts (noPollCtx       * ctx,
 					 host_ip, host_port, host_name, 
 					 get_url, protocols, origin);
 }
-#endif // NOWAY
 
 nopoll_bool __nopoll_tls_was_init = nopoll_false;
 
@@ -1092,20 +1026,16 @@ noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx,
 				  const char * protocols,
 				  const char * origin)
 {
-#ifdef NOWAY
 	/* init ssl ciphers and engines */
 	if (! __nopoll_tls_was_init) {
 		__nopoll_tls_was_init = nopoll_true;
 		SSL_library_init ();
 	} /* end if */
-#endif // NOWAY
-
 
 	/* call common implementation */
 	return __nopoll_conn_new_common (ctx, options, nopoll_true, 
 					 host_ip, host_port, host_name, 
 					 get_url, protocols, origin);
-
 }
 
 /** 
@@ -1179,19 +1109,7 @@ int            nopoll_conn_ref_count (noPollConn * conn)
 nopoll_bool    nopoll_conn_is_ok (noPollConn * conn)
 {
 	if (conn == NULL)
-	{
-		printf("(vjc): nopoll_conn_is_ok(): bailing because conn == NULL\n");
 		return nopoll_false;
-	}
-
-	if (conn->session == NOPOLL_INVALID_SOCKET)
-	{
-		printf("(vjc): nopoll_conn_is_ok(): bailing because conn->session == NOPOLL_INVALID_SOCKET\n");
-	}
-	else
-	{
-		printf("(vjc): nopoll_conn_is_ok(): returning TRUE\n");
-	}
 
 	/* return current socket status */
 	return conn->session != NOPOLL_INVALID_SOCKET;
@@ -1209,40 +1127,20 @@ nopoll_bool    nopoll_conn_is_ok (noPollConn * conn)
  */
 nopoll_bool    nopoll_conn_is_ready (noPollConn * conn)
 {
-	printf("(vjc): nopoll_conn_is_ready(): => Checking...\n");
-
 	if (conn == NULL)
-	{
-		printf("(vjc): nopoll_conn_is_ready(): conn == NULL, returning false\n");
 		return nopoll_false;
-	}
-
 	if (conn->session == NOPOLL_INVALID_SOCKET)
-	{
-		printf("(vjc): nopoll_conn_is_ready(): conn->session == NOPOLL_INVALID_SOCKET, returning false\n");
 		return nopoll_false;
-	}
-
 	if (! conn->handshake_ok) {
-		printf("(vjc): nopoll_conn_is_ready(): acquiring handshake mutex\n");
 		/* acquire here handshake mutex */
 		nopoll_mutex_lock (conn->ref_mutex);
 
-		printf("(vjc): nopoll_conn_is_ready(): completing the handshake\n");
 		/* complete handshake */
 		nopoll_conn_complete_handshake (conn);
 
-		printf("(vjc): nopoll_conn_is_ready(): releasing the handshake mutex\n");
 		/* release here handshake mutex */
 		nopoll_mutex_unlock (conn->ref_mutex);
 	}
-	else
-	{
-		printf("(vjc): nopoll_conn_is_ready(): conn->handshake_ok was true, just returning\n");
-	}
-
-	printf("(vjc): nopoll_conn_is_ready(): <= Returning...\n");
-
 	return conn->handshake_ok;
 }
 
@@ -1696,7 +1594,6 @@ noPollPtr     nopoll_conn_get_hook (noPollConn * conn)
  */
 void nopoll_conn_unref (noPollConn * conn)
 {
-#ifdef NOWAY
 	if (conn == NULL)
 		return;
 
@@ -1772,8 +1669,6 @@ void nopoll_conn_unref (noPollConn * conn)
 	nopoll_mutex_destroy (conn->ref_mutex);
 
 	nopoll_free (conn);	
-
-#endif // NOWAY
 
 	return;
 }
@@ -2159,7 +2054,6 @@ nopoll_bool nopoll_conn_check_mime_header_repeated (noPollConn   * conn,
 
 char * nopoll_conn_produce_accept_key (noPollCtx * ctx, const char * websocket_key)
 {
-#ifdef NOWAY
 	const char * static_guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";	
 	char       * accept_key;	
 	int          accept_key_size;
@@ -2200,10 +2094,6 @@ char * nopoll_conn_produce_accept_key (noPollCtx * ctx, const char * websocket_k
 	
 	return accept_key;
 	
-#else
-	return NULL;
-#endif //NOWAY
-
 }
 
 nopoll_bool nopoll_conn_complete_handshake_check_listener (noPollCtx * ctx, noPollConn * conn)
@@ -2619,7 +2509,6 @@ void nopoll_conn_mask_content (noPollCtx * ctx, char * payload, int payload_size
  */
 noPollMsg   * nopoll_conn_get_msg (noPollConn * conn)
 {
-#ifdef NOWAY
 	char        buffer[20];
 	int         bytes;
 	noPollMsg * msg;
@@ -3090,9 +2979,6 @@ read_payload:
 	}
 
 	return msg;
-#else
-	return NULL;
-#endif //NULL
 }
 
 /** 
@@ -4002,7 +3888,6 @@ noPollConn * nopoll_conn_accept_socket (noPollCtx * ctx, noPollConn * listener, 
 	return conn;
 }
 
-#ifdef NOWAY
 /**
  * @internal Function to support accept listener operations.
  */
@@ -4216,8 +4101,6 @@ nopoll_bool __nopoll_conn_accept_complete_common (noPollCtx * ctx, noPollConnOpt
 
 	return nopoll_true;
 }
-#endif // NOWAY
-
 
 /** 
  * @brief Allows to complete accept operation by setting up all I/O
