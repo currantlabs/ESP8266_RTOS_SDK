@@ -323,14 +323,14 @@ exit:
     }
 #endif
 
-	mbedtls_x509_crt_free( clicert );
-	free(clicert);
+    mbedtls_x509_crt_free( clicert );
+    free(clicert);
+    mbedtls_x509_crt_free( cacert );
+    free(cacert);
 
 #ifdef FREESTUFFUP
 //    mbedtls_net_free( &server_fd );
 
-    mbedtls_x509_crt_free( cacert );
-	free(cacert);
 
 
 	mbedtls_pk_free( pkey );
