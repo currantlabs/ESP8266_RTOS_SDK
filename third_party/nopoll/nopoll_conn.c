@@ -49,7 +49,7 @@
 #include <nopoll_conn.h>
 #include <nopoll_private.h>
 
-static mbedtls_ssl_context mbedtlsSSLContext = {0};;
+static mbedtls_ssl_context mbedtlsSSLContext = {0};
 static mbedtls_net_context mbedtlsNETContext = {0};
 
 /** 
