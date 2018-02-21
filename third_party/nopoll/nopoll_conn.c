@@ -213,7 +213,7 @@ NOPOLL_SOCKET nopoll_conn_sock_connect (noPollCtx   * ctx,
 	/* create the socket and check if it */
 	ret = mbedtls_library_init(&mbedtlsSSLContext, &mbedtlsNETContext, host, port);
 
-	if (ret < 0)
+	if (ret != 0)
 	{
 		printf("\nunable to create socket - mbedtls_library_init() failed.\n");
 		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "unable to create socket - mbedtls_library_init() failed.");
