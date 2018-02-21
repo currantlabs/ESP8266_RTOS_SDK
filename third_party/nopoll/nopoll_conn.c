@@ -49,8 +49,8 @@
 #include <nopoll_conn.h>
 #include <nopoll_private.h>
 
-static mbedtls_ssl_context mbedtlscookie = {0};;
-static mbedtls_net_context mbedtlsserver_fd = {0};
+static mbedtls_ssl_context mbedtlsSSLContext = {0};;
+static mbedtls_net_context mbedtlsNETContext = {0};
 
 /** 
  * @brief Allows to enable/disable non-blocking/blocking behavior on
@@ -212,7 +212,7 @@ NOPOLL_SOCKET nopoll_conn_sock_connect (noPollCtx   * ctx,
 	NOPOLL_SOCKET session;
 
 	/* create the socket and check if it */
-	session = mbedtls_library_init(&mbedtlscookie, &mbedtlsserver_fd, host, port);
+	session = mbedtls_library_init(&mbedtlsSSLContext, &mbedtlsNETContext, host, port);
 
 	return session;
 }
@@ -857,8 +857,8 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Sending websocket client init: %s", content);
 	size = strlen (content);
-	printf("(vjc) __nopoll_conn_new_common(): socket is setup, mbedtlscookie.major_ver = %d, mbedtlscookie.minor_ver = %d, ssl->f_send() = 0x%p, ssl->f_recv() = 0x%p\n",
-		   mbedtlscookie.major_ver, mbedtlscookie.minor_ver, mbedtlscookie.f_send, mbedtlscookie.f_recv);
+	printf("(vjc) __nopoll_conn_new_common(): socket is setup, mbedtlsSSLContext.major_ver = %d, mbedtlsSSLContext.minor_ver = %d, ssl->f_send() = 0x%p, ssl->f_recv() = 0x%p\n",
+		   mbedtlsSSLContext.major_ver, mbedtlsSSLContext.minor_ver, mbedtlsSSLContext.f_send, mbedtlsSSLContext.f_recv);
 	printf("(vjc) __nopoll_conn_new_common(): Sending websocket client init: [%s]", content);
 
 	/* call to send content */
@@ -1708,7 +1708,7 @@ void nopoll_conn_unref (noPollConn * conn)
  */
 int nopoll_conn_default_receive (noPollConn * conn, char * buffer, int buffer_size)
 {
-	return mbedtls_ssl_read (&mbedtlscookie, buffer, buffer_size);
+	return mbedtls_ssl_read (&mbedtlsSSLContext, buffer, buffer_size);
 }
 
 /** 
@@ -1716,7 +1716,7 @@ int nopoll_conn_default_receive (noPollConn * conn, char * buffer, int buffer_si
  */
 int nopoll_conn_default_send (noPollConn * conn, char * buffer, int buffer_size)
 {
-	return  mbedtls_ssl_write (&mbedtlscookie, buffer, buffer_size);
+	return  mbedtls_ssl_write (&mbedtlsSSLContext, buffer, buffer_size);
 }
 
 /** 
