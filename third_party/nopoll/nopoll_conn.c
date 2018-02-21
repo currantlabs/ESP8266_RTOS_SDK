@@ -49,7 +49,7 @@
 #include <nopoll_conn.h>
 #include <nopoll_private.h>
 
-static mbedtls_ssl_context mbedtlscookie;
+static mbedtls_ssl_context mbedtlscookie = {0};;
 
 
 /** 
@@ -210,10 +210,9 @@ NOPOLL_SOCKET nopoll_conn_sock_connect (noPollCtx   * ctx,
 					const char  * port)
 {
 	NOPOLL_SOCKET session;
-	mbedtls_ssl_context	*mbedtlsp[] = {&mbedtlscookie};
 
 	/* create the socket and check if it */
-	session = mbedtls_library_init(&mbedtlsp[0], host, port);
+	session = mbedtls_library_init(&mbedtlscookie, host, port);
 
 	return session;
 }
@@ -858,6 +857,8 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Sending websocket client init: %s", content);
 	size = strlen (content);
+	printf("(vjc) __nopoll_conn_new_common(): socket is setup, mbedtlscookie.major_ver = %d, mbedtlscookie.minor_ver = %d, ssl->f_send() = 0x%p, ssl->f_recv() = 0x%p\n",
+		   mbedtlscookie.major_ver, mbedtlscookie.minor_ver, mbedtlscookie.f_send, mbedtlscookie.f_recv);
 	printf("(vjc) __nopoll_conn_new_common(): Sending websocket client init: [%s]", content);
 
 	/* call to send content */

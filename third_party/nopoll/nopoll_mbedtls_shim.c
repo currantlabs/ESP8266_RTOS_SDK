@@ -149,7 +149,7 @@ uint8 * Ssl_obj_load(const uint8_t* data, int len)
 	return load_buffer;
 }
 
-int mbedtls_library_init(mbedtls_ssl_context **nopoll_ssl, const char *SERVER_NAME, const char *SERVER_PORT)
+int mbedtls_library_init(mbedtls_ssl_context *ssl, const char *SERVER_NAME, const char *SERVER_PORT)
 {
     int ret, len;
     mbedtls_net_context server_fd;
@@ -163,9 +163,10 @@ int mbedtls_library_init(mbedtls_ssl_context **nopoll_ssl, const char *SERVER_NA
     mbedtls_entropy_context *entropy = (mbedtls_entropy_context *)zalloc(sizeof(mbedtls_entropy_context));
     mbedtls_ctr_drbg_context ctr_drbg;
 
-    mbedtls_ssl_context *ssl = (mbedtls_ssl_context *)zalloc(sizeof(mbedtls_ssl_context));
-	*nopoll_ssl = ssl;
-	printf("\n\n(vjc) mbedtls_ssl_context ssl = 0x%p (*nopoll_ssl = 0x%p)\n\n", ssl, *nopoll_ssl);
+	printf("(vjc) mbedtls_library_init(): mbedtls_ssl_context was just allocated, mbedtlscookie.major_ver = %d, mbedtlscookie.minor_ver = %d, ssl->f_send() = 0x%p, ssl->f_recv() = 0x%p\n",
+		   ssl->major_ver, ssl->minor_ver, ssl->f_send, ssl->f_recv);
+
+	printf("\n\n(vjc) mbedtls_ssl_context ssl = 0x%p \n\n", ssl);
 
     mbedtls_ssl_config *conf = (mbedtls_ssl_config *)zalloc(sizeof(mbedtls_ssl_config));
 	
@@ -306,6 +307,10 @@ int mbedtls_library_init(mbedtls_ssl_context **nopoll_ssl, const char *SERVER_NA
     }
     else
         mbedtls_printf( " ok\n" );
+
+
+	printf("(vjc) mbedtls_library_init(): socket is setup, mbedtlscookie.major_ver = %d, mbedtlscookie.minor_ver = %d, ssl->f_send() = 0x%p, ssl->f_recv() = 0x%p\n",
+		   ssl->major_ver, ssl->minor_ver, ssl->f_send, ssl->f_recv);
 
 
 	return server_fd.fd;
