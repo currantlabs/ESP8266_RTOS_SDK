@@ -635,8 +635,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	int              iterator;
 	long             remaining_timeout;
 
-	printf("(vjc) __nopoll_conn_new_common(): = Top\n");
-
 	if (! ctx || ! host_ip) {
 		/* release connection options */
 		__nopoll_conn_opts_release_if_needed (options);
@@ -857,9 +855,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Sending websocket client init: %s", content);
 	size = strlen (content);
-	printf("(vjc) __nopoll_conn_new_common(): socket is setup, mbedtlsSSLContext.major_ver = %d, mbedtlsSSLContext.minor_ver = %d, ssl->f_send() = 0x%p, ssl->f_recv() = 0x%p\n",
-		   mbedtlsSSLContext.major_ver, mbedtlsSSLContext.minor_ver, mbedtlsSSLContext.f_send, mbedtlsSSLContext.f_recv);
-	printf("(vjc) __nopoll_conn_new_common(): Sending websocket client init: [%s]", content);
 
 	/* call to send content */
 	remaining_timeout = ctx->conn_connect_std_timeout;
@@ -880,7 +875,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		break;
 	}
 
-	printf("(vjc) __nopoll_conn_new_common(): Web socket initial client handshake sent\n");
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Web socket initial client handshake sent");
 
 	/* release content */
@@ -890,7 +884,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	__nopoll_conn_opts_release_if_needed (options);
 
 	/* return connection created */
-	printf("(vjc) __nopoll_conn_new_common(): Returning conn = 0x%p, with conn->session of %d.\n", conn, conn->session);
 	return conn;
 }
 
