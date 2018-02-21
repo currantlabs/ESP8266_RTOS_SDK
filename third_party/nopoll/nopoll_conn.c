@@ -1680,7 +1680,7 @@ int nopoll_conn_default_receive (noPollConn * conn, char * buffer, int buffer_si
 {
 	int retval;
 	printf("(vjc) => nopoll_conn_default_receive\n");
-	retval = mbedtls_ssl_read (conn->ssl, buffer, buffer_size);
+	retval = mbedtls_ssl_read (&mbedtlscookie, buffer, buffer_size);
 	printf("(vjc) <= nopoll_conn_default_receive retval is %d\n", retval);
 	return retval;
 }
@@ -1692,7 +1692,7 @@ int nopoll_conn_default_send (noPollConn * conn, char * buffer, int buffer_size)
 {
 	int retval;
 	printf("(vjc) => nopoll_conn_default_send (Sending %d bytes)\n", buffer_size);
-	retval =  mbedtls_ssl_write (conn->ssl, buffer, buffer_size);
+	retval =  mbedtls_ssl_write (&mbedtlscookie, buffer, buffer_size);
 	printf("(vjc) <= nopoll_conn_default_send retval is %d\n", retval);
 	return retval;
 }
