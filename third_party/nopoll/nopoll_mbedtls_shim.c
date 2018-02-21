@@ -323,22 +323,25 @@ exit:
     }
 #endif
 
+	mbedtls_x509_crt_free( clicert );
+	free(clicert);
+
 #ifdef FREESTUFFUP
 //    mbedtls_net_free( &server_fd );
 
     mbedtls_x509_crt_free( cacert );
-	mbedtls_x509_crt_free( clicert );
-	mbedtls_pk_free( pkey );
-//    mbedtls_ssl_free( ssl );
-    mbedtls_ssl_config_free( conf );
-//    mbedtls_ctr_drbg_free( &ctr_drbg );
-    mbedtls_entropy_free( entropy );
-//	free(ssl);
 	free(cacert);
-	free(clicert);
+
+
+	mbedtls_pk_free( pkey );
 	free(pkey);
+
+    mbedtls_entropy_free( entropy );
 	free(entropy);
+
+    mbedtls_ssl_config_free( conf );
 	free(conf);
+
 #endif // FREESTUFFUP
 
     return( ret );
