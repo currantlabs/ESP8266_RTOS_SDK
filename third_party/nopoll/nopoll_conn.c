@@ -50,7 +50,7 @@
 #include <nopoll_private.h>
 
 static mbedtls_ssl_context mbedtlscookie = {0};;
-
+static mbedtls_net_context mbedtlsserver_fd = {0};
 
 /** 
  * @brief Allows to enable/disable non-blocking/blocking behavior on
@@ -212,7 +212,7 @@ NOPOLL_SOCKET nopoll_conn_sock_connect (noPollCtx   * ctx,
 	NOPOLL_SOCKET session;
 
 	/* create the socket and check if it */
-	session = mbedtls_library_init(&mbedtlscookie, host, port);
+	session = mbedtls_library_init(&mbedtlscookie, &mbedtlsserver_fd, host, port);
 
 	return session;
 }

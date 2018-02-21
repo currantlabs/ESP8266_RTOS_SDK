@@ -149,10 +149,9 @@ uint8 * Ssl_obj_load(const uint8_t* data, int len)
 	return load_buffer;
 }
 
-int mbedtls_library_init(mbedtls_ssl_context *ssl, const char *SERVER_NAME, const char *SERVER_PORT)
+int mbedtls_library_init(mbedtls_ssl_context *ssl, mbedtls_net_context *server_fd, const char *SERVER_NAME, const char *SERVER_PORT)
 {
     int ret, len;
-    mbedtls_net_context server_fd;
     uint32_t flags;
     unsigned char buf[256];
 	uint8* load_buffer = NULL;
@@ -213,17 +212,17 @@ int mbedtls_library_init(mbedtls_ssl_context *ssl, const char *SERVER_NAME, cons
     mbedtls_printf( "  . Connecting to tcp/%s/%s...", SERVER_NAME, SERVER_PORT );
     //fflush( stdout );
 
-	mbedtls_net_init( &server_fd );
-	printf( "\n(vjc) After mbedtls_net_init(), server_fd.fd = %d (should be -1)\n", server_fd.fd);
+	mbedtls_net_init( server_fd );
+	printf( "\n(vjc) After mbedtls_net_init(), server_fd.fd = %d (should be -1)\n", server_fd->fd);
 
-    if( ( ret = mbedtls_net_connect( &server_fd, SERVER_NAME,
+    if( ( ret = mbedtls_net_connect( server_fd, SERVER_NAME,
                                          SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
     {
         mbedtls_printf( " failed\n  ! mbedtls_net_connect returned %d\n\n", ret );
         goto exit;
     }
 
-	printf( "(vjc) mbedtls_net_connect() succeeded, and server_fd.fd = %d\n", server_fd.fd);
+	printf( "(vjc) mbedtls_net_connect() succeeded, and server_fd->fd = %d\n", server_fd->fd);
 
     mbedtls_printf( " ok\n" );
 
@@ -267,9 +266,9 @@ int mbedtls_library_init(mbedtls_ssl_context *ssl, const char *SERVER_NAME, cons
         goto exit;
     }
 
-	printf( "(vjc) Before mbedtls_ssl_set_bio(): server_fd.fd = %d\n", server_fd.fd);
-    mbedtls_ssl_set_bio( ssl, &server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
-	printf( "(vjc) After mbedtls_ssl_set_bio(): server_fd.fd = %d\n", server_fd.fd);
+	printf( "(vjc) Before mbedtls_ssl_set_bio(): server_fd->fd = %d\n", server_fd->fd);
+    mbedtls_ssl_set_bio( ssl, server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
+	printf( "(vjc) After mbedtls_ssl_set_bio(): server_fd->fd = %d\n", server_fd->fd);
     /*
      * 4. Handshake
      */
@@ -313,7 +312,7 @@ int mbedtls_library_init(mbedtls_ssl_context *ssl, const char *SERVER_NAME, cons
 		   ssl->major_ver, ssl->minor_ver, ssl->f_send, ssl->f_recv);
 
 
-	return server_fd.fd;
+	return server_fd->fd;
 
 
 
