@@ -3477,9 +3477,19 @@ void          nopoll_conn_set_on_close (noPollConn            * conn,
  * @param nopoll_true if the operation was sent without any error,
  * otherwise nopoll_false is returned.
  */
+
+/*
+ * The websocket protocol is ambiguous on the point of whether
+ * or not the PONG packet should be masked - but the consensus
+ * seems to be (1) mask the PONG packet, and (2) since a mask
+ * implies a payload, attach an "unnecessary" 4-byte payload.
+ * This little static holds the payload:
+ */
+static uint8 unnecessaryPongContent[] = {'P', 'O', 'N', 'G'};
+
 nopoll_bool      nopoll_conn_send_pong (noPollConn * conn)
 {
-	return nopoll_conn_send_frame (conn, nopoll_true, nopoll_false, NOPOLL_PONG_FRAME, 0, NULL, 0);
+	return nopoll_conn_send_frame (conn, nopoll_true, nopoll_true, NOPOLL_PONG_FRAME, 4, unnecessaryPongContent, 0);
 }
 
 /** 
