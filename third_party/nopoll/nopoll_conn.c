@@ -874,13 +874,6 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Sending websocket client init: %s", content);
 	size = strlen (content);
-
-	printf("\n\n(vjc) __nopoll_conn_new_common(): NOPOLL_SOCKET session = %d\n", session);
-	printf("(vjc) __nopoll_conn_new_common(): conn->int id = %d\n\tconn->noPollCtx *ctx = 0x%p\n\tconn->NOPOLL_SOCKET session = %d\n", 
-		   conn->id, conn->ctx, conn->session);
-	printf("(vjc) __nopoll_conn_new_common(): conn->ssl = 0x%p\n\tconn->ssl->p_bio = 0x%p\n\tconn->ssl->p_bio->fd = %d\n\n\n", 
-		   conn->ssl, conn->ssl->p_bio, ((*mbedtls_net_context )conn-ssl->p_bio)->fd);
-
 	printf("(vjc) __nopoll_conn_new_common(): Sending websocket client init: [%s]", content);
 
 	/* call to send content */
