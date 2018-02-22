@@ -327,14 +327,14 @@ exit:
     free(clicert);
     mbedtls_x509_crt_free( cacert );
     free(cacert);
+    mbedtls_pk_free( pkey );
+    free(pkey);
 
 #ifdef FREESTUFFUP
 //    mbedtls_net_free( &server_fd );
 
 
 
-	mbedtls_pk_free( pkey );
-	free(pkey);
 
     mbedtls_entropy_free( entropy );
 	free(entropy);
