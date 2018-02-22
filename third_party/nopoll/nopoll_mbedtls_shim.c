@@ -149,7 +149,7 @@ uint8 * Ssl_obj_load(const uint8_t* data, int len)
 	return load_buffer;
 }
 
-int mbedtls_library_init(mbedtls_ssl_context *ssl, mbedtls_net_context *server_fd, const char *SERVER_NAME, const char *SERVER_PORT)
+int mbedtls_library_init(mbedtls_ssl_context *ssl, mbedtls_ssl_config *conf, mbedtls_net_context *server_fd, const char *SERVER_NAME, const char *SERVER_PORT)
 {
     int ret, len;
     uint32_t flags;
@@ -162,8 +162,6 @@ int mbedtls_library_init(mbedtls_ssl_context *ssl, mbedtls_net_context *server_f
     mbedtls_entropy_context *entropy = (mbedtls_entropy_context *)zalloc(sizeof(mbedtls_entropy_context));
     mbedtls_ctr_drbg_context ctr_drbg;
 
-    mbedtls_ssl_config *conf = (mbedtls_ssl_config *)zalloc(sizeof(mbedtls_ssl_config));
-	
     mbedtls_x509_crt *cacert = (mbedtls_x509_crt *)zalloc(sizeof(mbedtls_x509_crt));
 	mbedtls_x509_crt *clicert = (mbedtls_x509_crt *)zalloc(sizeof(mbedtls_x509_crt));
 	mbedtls_pk_context *pkey = (mbedtls_pk_context *)zalloc(sizeof(mbedtls_pk_context));
@@ -314,11 +312,6 @@ exit:
     free(pkey);
     mbedtls_entropy_free( entropy );
     free(entropy);
-
-#ifdef FREESTUFFUP
-    mbedtls_ssl_config_free( conf );
-	free(conf);
-#endif // FREESTUFFUP
 
     return( ret );
 }

@@ -50,6 +50,7 @@
 #include <nopoll_private.h>
 
 static mbedtls_ssl_context mbedtlsSSLContext = {0};
+static mbedtls_ssl_config mbedtlsSSLConfig = {0};
 static mbedtls_net_context mbedtlsNETContext = {0};
 
 /** 
@@ -211,7 +212,7 @@ NOPOLL_SOCKET nopoll_conn_sock_connect (noPollCtx   * ctx,
 	NOPOLL_SOCKET session;
 
 	/* create the socket and check if it */
-	ret = mbedtls_library_init(&mbedtlsSSLContext, &mbedtlsNETContext, host, port);
+	ret = mbedtls_library_init(&mbedtlsSSLContext, &mbedtlsSSLConfig, &mbedtlsNETContext, host, port);
 
 	if (ret != 0)
 	{
