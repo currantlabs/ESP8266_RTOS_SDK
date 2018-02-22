@@ -162,11 +162,6 @@ int mbedtls_library_init(mbedtls_ssl_context *ssl, mbedtls_net_context *server_f
     mbedtls_entropy_context *entropy = (mbedtls_entropy_context *)zalloc(sizeof(mbedtls_entropy_context));
     mbedtls_ctr_drbg_context ctr_drbg;
 
-	printf("(vjc) mbedtls_library_init(): mbedtls_ssl_context was just allocated, mbedtlscookie.major_ver = %d, mbedtlscookie.minor_ver = %d, ssl->f_send() = 0x%p, ssl->f_recv() = 0x%p\n",
-		   ssl->major_ver, ssl->minor_ver, ssl->f_send, ssl->f_recv);
-
-	printf("\n\n(vjc) mbedtls_ssl_context ssl = 0x%p \n\n", ssl);
-
     mbedtls_ssl_config *conf = (mbedtls_ssl_config *)zalloc(sizeof(mbedtls_ssl_config));
 	
     mbedtls_x509_crt *cacert = (mbedtls_x509_crt *)zalloc(sizeof(mbedtls_x509_crt));
@@ -213,17 +208,12 @@ int mbedtls_library_init(mbedtls_ssl_context *ssl, mbedtls_net_context *server_f
     //fflush( stdout );
 
 	mbedtls_net_init( server_fd );
-	printf( "\n(vjc) After mbedtls_net_init(), server_fd.fd = %d (should be -1)\n", server_fd->fd);
-
     if( ( ret = mbedtls_net_connect( server_fd, SERVER_NAME,
                                          SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
     {
         mbedtls_printf( " failed\n  ! mbedtls_net_connect returned %d\n\n", ret );
         goto exit;
     }
-
-	printf( "(vjc) mbedtls_net_connect() succeeded, and server_fd->fd = %d\n", server_fd->fd);
-
     mbedtls_printf( " ok\n" );
 
     /*
@@ -266,9 +256,7 @@ int mbedtls_library_init(mbedtls_ssl_context *ssl, mbedtls_net_context *server_f
         goto exit;
     }
 
-	printf( "(vjc) Before mbedtls_ssl_set_bio(): server_fd->fd = %d\n", server_fd->fd);
     mbedtls_ssl_set_bio( ssl, server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
-	printf( "(vjc) After mbedtls_ssl_set_bio(): server_fd->fd = %d\n", server_fd->fd);
     /*
      * 4. Handshake
      */
@@ -307,11 +295,6 @@ int mbedtls_library_init(mbedtls_ssl_context *ssl, mbedtls_net_context *server_f
     else
         mbedtls_printf( " ok\n" );
 
-
-	printf("(vjc) mbedtls_library_init(): socket is setup, mbedtlscookie.major_ver = %d, mbedtlscookie.minor_ver = %d, ssl->f_send() = 0x%p, ssl->f_recv() = 0x%p\n",
-		   ssl->major_ver, ssl->minor_ver, ssl->f_send, ssl->f_recv);
-
-
 exit:
 
 #ifdef MBEDTLS_ERROR_C
@@ -333,15 +316,8 @@ exit:
     free(entropy);
 
 #ifdef FREESTUFFUP
-//    mbedtls_net_free( &server_fd );
-
-
-
-
-
     mbedtls_ssl_config_free( conf );
 	free(conf);
-
 #endif // FREESTUFFUP
 
     return( ret );
