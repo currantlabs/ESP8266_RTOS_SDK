@@ -329,6 +329,8 @@ exit:
     free(cacert);
     mbedtls_pk_free( pkey );
     free(pkey);
+    mbedtls_entropy_free( entropy );
+    free(entropy);
 
 #ifdef FREESTUFFUP
 //    mbedtls_net_free( &server_fd );
@@ -336,8 +338,6 @@ exit:
 
 
 
-    mbedtls_entropy_free( entropy );
-	free(entropy);
 
     mbedtls_ssl_config_free( conf );
 	free(conf);
