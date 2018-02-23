@@ -990,16 +990,10 @@ noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx,
 				  const char * protocols,
 				  const char * origin)
 {
-	/* init ssl ciphers and engines */
-	if (! __nopoll_tls_was_init) {
-		__nopoll_tls_was_init = nopoll_true;
-		SSL_library_init ();
-	} /* end if */
-
-	/* call common implementation */
-	return __nopoll_conn_new_common (ctx, options, nopoll_true, 
-					 host_ip, host_port, host_name, 
-					 get_url, protocols, origin);
+	printf("This version of the ESP8266_RTOS_SDK websocket library (\"-lnopoll\") no longer supports the \"nopoll_conn_tls_new()\" api.\n");
+	printf("The websocket library has been hacked to provide _only_ TLS 1.2 secure connections which are tailored to operate with the Currant backend.\n");
+	printf("These TLS 1.2 secured websocket connections are created using the \"nopoll_conn_new()\" api (yeah, kinda counterintuitive - but this is a hack :-)\n");
+	return NULL;
 }
 
 /** 
