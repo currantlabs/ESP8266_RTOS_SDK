@@ -61,18 +61,9 @@ typedef unsigned char           EVP_MD;
 // "getauthtoken()" will be defined in whatever app links to
 // the nopoll websocket library for the purpose of talking
 // to the Currant backend:
-extern const uint8 *getauthtoken(void);
-
-// Similarly, we have to declare external routines "getstringerversion()"
-// and "getbuildmachinename()" so that we can add information to the
-// headers that will allow the backend to track which version of Stringer
-// FW (as well as whether or not it was built on the official "jenkins"
-// build machine or not):
-extern const char *getstringerversion(void);
-extern const char *getbuildmachinename(void);
+extern char *getauthtoken(void);
 
 /* (vjc)..end of new declarations */
-
 
 #include <nopoll_handlers.h>
 

@@ -240,9 +240,7 @@ char * __nopoll_conn_get_client_init (noPollConn * conn, noPollConnOpts * opts)
 	char key[50];
 	int  key_size = 50;
 	char nonce[17];
-	const char *auth_token = getauthtoken();
-	const char *stringerversion = getstringerversion();
-	const char *buildmachine = getbuildmachinename();
+	char *auth_token = getauthtoken();
 
 	/* get the nonce */
 	if (! nopoll_nonce (nonce, 16)) {
@@ -263,7 +261,7 @@ char * __nopoll_conn_get_client_init (noPollConn * conn, noPollConnOpts * opts)
 	conn->handshake->expected_accept = nopoll_strdup (key);
 
 	/* send initial handshake                                                                                                                        |cookie |prot  | */
-    return nopoll_strdup_printf ("GET %s HTTP/1.1\r\nHost: %s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: %s\r\nOrigin: %s\r\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%sSec-WebSocket-Version: %d\r\n\r\n", 
+    return nopoll_strdup_printf ("GET %s HTTP/1.1\r\nHost: %s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: %s\r\nOrigin: %s\r\n%s%s%s%s%s%s%s%s%s%s%sSec-WebSocket-Version: %d\r\n\r\n", 
 
                      conn->get_url, conn->host_name, 
                      /* sec-websocket-key */
@@ -274,14 +272,6 @@ char * __nopoll_conn_get_client_init (noPollConn * conn, noPollConnOpts * opts)
                      (auth_token == NULL) ? "" : "Authorization: Bearer ",
                      (auth_token == NULL) ? "" : auth_token,
                      (auth_token == NULL) ? "" : "\r\n",
-                     /* Stringer FW Version */
-                     (stringerversion == NULL) ? "" : "Stringer-Version: ",
-                     (stringerversion == NULL) ? "" : stringerversion,
-                     (stringerversion == NULL) ? "" : "\r\n",
-                     /* Stringer FW Buildmachine Name */
-                     (buildmachine == NULL) ? "" : "Stringer-FW-Buildmachine: ",
-                     (buildmachine == NULL) ? "" : buildmachine,
-                     (buildmachine == NULL) ? "" : "\r\n",
                      /* Cookie */
                      (opts && opts->cookie) ? "Cookie" : "",
                      (opts && opts->cookie) ? ": " : "",
@@ -1676,9 +1666,6 @@ void nopoll_conn_unref (noPollConn * conn)
 	nopoll_mutex_destroy (conn->ref_mutex);
 
 	nopoll_free (conn);	
-
-	/* release any resources from the mbedtls library */
-	mbedtls_library_free(&mbedtlsSSLContext, &mbedtlsSSLConfig, &mbedtlsNETContext);
 
 	return;
 }
