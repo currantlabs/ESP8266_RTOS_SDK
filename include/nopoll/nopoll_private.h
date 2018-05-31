@@ -63,6 +63,12 @@ typedef unsigned char           EVP_MD;
 // to the Currant backend:
 extern const uint8 *getauthtoken(void);
 
+// We define an external method for fetching the app version
+// "getfirmwareversion()" will be defined in whatever app links to
+// the nopoll websocket library for the purpose of talking
+// to the Currant backend:
+extern const uint8 *getfirmwareversion(void);
+
 /* (vjc)..end of new declarations */
 
 

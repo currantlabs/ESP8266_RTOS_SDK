@@ -242,6 +242,8 @@ char * __nopoll_conn_get_client_init (noPollConn * conn, noPollConnOpts * opts)
 	char nonce[17];
 	const char *auth_token = getauthtoken();
 
+	const char *firmware_version = getfirmwareversion();
+
 	/* get the nonce */
 	if (! nopoll_nonce (nonce, 16)) {
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL, "Failed to get nonce, unable to produce Sec-WebSocket-Key.");
@@ -261,7 +263,7 @@ char * __nopoll_conn_get_client_init (noPollConn * conn, noPollConnOpts * opts)
 	conn->handshake->expected_accept = nopoll_strdup (key);
 
 	/* send initial handshake                                                                                                                        |cookie |prot  | */
-    return nopoll_strdup_printf ("GET %s HTTP/1.1\r\nHost: %s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: %s\r\nOrigin: %s\r\n%s%s%s%s%s%s%s%s%s%s%sSec-WebSocket-Version: %d\r\n\r\n", 
+    return nopoll_strdup_printf ("GET %s HTTP/1.1\r\nHost: %s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: %s\r\nOrigin: %s\r\n%s%s%s%s%s%s%s%s%s%s%s%s%s%sSec-WebSocket-Version: %d\r\n\r\n", 
 
                      conn->get_url, conn->host_name, 
                      /* sec-websocket-key */
@@ -278,6 +280,9 @@ char * __nopoll_conn_get_client_init (noPollConn * conn, noPollConnOpts * opts)
                      (opts && opts->cookie) ? opts->cookie : "",
                      (opts && opts->cookie) ? "\r\n" : "",
                      /* protocol part */
+                     (firmware_version == NULL) ? "" : "Currant-Firmware-Version:",
+                     (firmware_version == NULL) ? "" : firmware_version,
+                     (firmware_version == NULL) ? "" : "\r\n",
                      conn->protocols ? "Sec-WebSocket-Protocol" : "",
                      conn->protocols ? ": " : "",
                      conn->protocols ? conn->protocols : "",
